@@ -1,11 +1,3 @@
-//
-//  ExploreView.swift
-//  Temporary
-//
-//  Created by Mikael on 24/2/26.
-//
-
-
 import SwiftUI
 
 struct ExploreView: View {
@@ -29,12 +21,18 @@ struct ExploreView: View {
                 $0.region.localizedCaseInsensitiveContains(searchText)
             }
         }
+
         switch sortOption {
-        case .newest: results.sort { $0.listingDate > $1.listingDate }
-        case .priceLow: results.sort { $0.price < $1.price }
-        case .priceHigh: results.sort { $0.price > $1.price }
-        case .largest: results.sort { $0.squareFeet > $1.squareFeet }
+        case .newest:
+            results.sort { $0.listingDate > $1.listingDate }
+        case .priceLow:
+            results.sort { $0.price < $1.price }
+        case .priceHigh:
+            results.sort { $0.price > $1.price }
+        case .largest:
+            results.sort { $0.squareFeet > $1.squareFeet }
         }
+
         return results
     }
 
@@ -44,26 +42,30 @@ struct ExploreView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                NomadTheme.offWhite.ignoresSafeArea()
+            ScrollView {
+                VStack(alignment: .leading, spacing: NomadSpacing.sectionVertical) {
+                    headerSection
+                    searchBarSection
+                    resultsHeader
+                    propertyList
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        headerSection
-                        searchBarSection
-                        resultsHeader
-                        propertyList
+                    if !featuredProperties.isEmpty {
                         featuredSection
-                        Spacer(minLength: 80)
                     }
-                    .padding(.horizontal, 16)
                 }
-
-                VStack {
-                    Spacer()
-                    mapButton
-                }
+                .padding(.horizontal, NomadSpacing.pageHorizontal)
+                .padding(.top, NomadSpacing.sm)
+                .padding(.bottom, NomadSpacing.xxl)
             }
+            .safeAreaInset(edge: .bottom) {
+                NomadPrimaryCTA(title: "View map", icon: "map.fill") {
+                    showMap = true
+                }
+                .padding(.horizontal, NomadSpacing.pageHorizontal)
+                .padding(.vertical, NomadSpacing.sm)
+                .background(.ultraThinMaterial)
+            }
+            .nomadScreenBackground()
             .navigationBarHidden(true)
             .sheet(isPresented: $showFilter) {
                 FilterView(filter: $filter, onApply: {
@@ -93,60 +95,45 @@ struct ExploreView: View {
     }
 
     private var headerSection: some View {
-        HStack {
+        HStack(spacing: NomadSpacing.md) {
             Image("NomadLogo")
                 .resizable()
                 .scaledToFit()
-                .frame(height: 45)
+                .frame(height: 44)
 
-            Spacer()
+            Spacer(minLength: 0)
 
-            Button { showCreateListing = true } label: {
-                Image(systemName: "plus")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 36, height: 36)
-                    .background(NomadTheme.darkGreen, in: .circle)
-                    .shadow(color: .black.opacity(0.1), radius: 8, y: 4)
+            NomadIconCircleButton(icon: "plus", emphasis: .accent) {
+                showCreateListing = true
             }
+            .accessibilityLabel("Create listing")
         }
-        .padding(.top, 8)
     }
 
     private var searchBarSection: some View {
-        HStack(spacing: 10) {
-            Button { showSearch = true } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(NomadTheme.lightGrey)
-                    Text("Search by region, city, street...")
-                        .font(.subheadline)
-                        .foregroundStyle(NomadTheme.lightGrey)
-                    Spacer()
-                }
-                .padding(16)
-                .background(.white, in: .capsule)
-                .shadow(color: .black.opacity(0.08), radius: NomadTheme.cardShadow, y: 10)
+        HStack(spacing: NomadSpacing.sm) {
+            NomadSearchField(placeholder: "Search by region, city, street...") {
+                showSearch = true
             }
 
-            Button { showFilter = true } label: {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.body.weight(.medium))
-                    .foregroundStyle(filter.isActive ? .white : NomadTheme.darkText)
-                    .frame(width: 52, height: 52)
-                    .background(filter.isActive ? NomadTheme.darkGreen : .white, in: .circle)
-                    .shadow(color: .black.opacity(0.08), radius: NomadTheme.cardShadow, y: 10)
+            NomadIconCircleButton(
+                icon: "slider.horizontal.3",
+                emphasis: filter.isActive ? .accent : .neutral,
+                size: 52
+            ) {
+                showFilter = true
             }
+            .accessibilityLabel("Open filters")
         }
     }
 
     private var resultsHeader: some View {
-        HStack {
+        HStack(alignment: .firstTextBaseline, spacing: NomadSpacing.sm) {
             Text("\(filteredProperties.count) properties for \(filter.listingType.rawValue.lowercased())")
-                .font(.subheadline)
-                .foregroundStyle(NomadTheme.lightGrey)
+                .font(NomadTypography.body)
+                .foregroundStyle(NomadColor.Text.secondary)
 
-            Spacer()
+            Spacer(minLength: NomadSpacing.sm)
 
             Menu {
                 ForEach(SortOption.allCases, id: \.self) { option in
@@ -162,28 +149,33 @@ struct ExploreView: View {
                     }
                 }
             } label: {
-                HStack(spacing: 4) {
+                HStack(spacing: NomadSpacing.xxs) {
                     Text(sortOption.title)
-                        .font(.caption.weight(.medium))
+                        .font(NomadTypography.caption)
                     Image(systemName: "chevron.down")
-                        .font(.caption2)
+                        .font(NomadTypography.meta)
                 }
-                .foregroundStyle(NomadTheme.darkText)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(.white, in: .capsule)
+                .foregroundStyle(NomadColor.Text.primary)
+                .padding(.horizontal, NomadSpacing.md)
+                .padding(.vertical, NomadSpacing.xs)
+                .background(NomadColor.Background.surface, in: .capsule)
+                .overlay {
+                    Capsule()
+                        .stroke(NomadColor.Border.default, lineWidth: 1)
+                }
             }
         }
     }
 
     private var propertyList: some View {
-        LazyVStack(spacing: 16) {
+        LazyVStack(spacing: NomadSpacing.md) {
             ForEach(filteredProperties) { property in
                 Button {
                     selectedProperty = property
                 } label: {
-                    PropertyCardView(
+                    NomadPropertyCard(
                         property: property,
+                        variant: .full,
                         isSaved: appVM.isSaved(property),
                         onToggleSave: { appVM.toggleSaved(property) }
                     )
@@ -194,18 +186,17 @@ struct ExploreView: View {
     }
 
     private var featuredSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Featured")
-                .font(.title3.bold())
-                .foregroundStyle(NomadTheme.darkText)
+        VStack(alignment: .leading, spacing: NomadSpacing.md) {
+            NomadSectionHeader(title: "Featured", subtitle: "Hand-picked homes")
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
+                HStack(spacing: NomadSpacing.sm) {
                     ForEach(featuredProperties) { property in
                         Button {
                             selectedProperty = property
                         } label: {
-                            FeaturedCard(property: property)
+                            NomadPropertyCard(property: property, variant: .compact)
+                                .frame(width: 220)
                         }
                         .buttonStyle(.plain)
                     }
@@ -214,72 +205,21 @@ struct ExploreView: View {
             .contentMargins(.horizontal, 0)
         }
     }
-
-    private var mapButton: some View {
-        Button { showMap = true } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "map.fill")
-                Text("View map")
-            }
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 24)
-            .padding(.vertical, 14)
-            .background(.black, in: .capsule)
-            .shadow(color: .black.opacity(0.2), radius: 20, y: 10)
-        }
-        .padding(.bottom, 16)
-    }
 }
 
 nonisolated enum SortOption: String, CaseIterable, Sendable {
-    case newest, priceLow, priceHigh, largest
+    case newest
+    case priceLow
+    case priceHigh
+    case largest
 
     var title: String {
         switch self {
         case .newest: return "Newest"
-        case .priceLow: return "Price: Low to High"
-        case .priceHigh: return "Price: High to Low"
+        case .priceLow: return "Price Low"
+        case .priceHigh: return "Price High"
         case .largest: return "Largest"
         }
-    }
-}
-
-struct FeaturedCard: View {
-    let property: Property
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Color(.secondarySystemBackground)
-                .frame(width: 200, height: 140)
-                .overlay {
-                    AsyncImage(url: URL(string: property.imageURLs.first ?? "")) { phase in
-                        if let image = phase.image {
-                            image.resizable().aspectRatio(contentMode: .fill).allowsHitTesting(false)
-                        } else {
-                            ProgressView()
-                        }
-                    }
-                }
-                .clipShape(.rect(cornerRadius: 20))
-
-            Text(property.fullFormattedPrice)
-                .font(.subheadline.bold())
-                .foregroundStyle(NomadTheme.darkText)
-
-            Text(property.city)
-                .font(.caption)
-                .foregroundStyle(NomadTheme.lightGrey)
-
-            HStack(spacing: 8) {
-                if property.bedrooms > 0 { SpecItem(icon: "bed.double.fill", value: "\(property.bedrooms)") }
-                if property.bathrooms > 0 { SpecItem(icon: "shower.fill", value: "\(property.bathrooms)") }
-            }
-        }
-        .frame(width: 200)
-        .padding(10)
-        .background(.white, in: .rect(cornerRadius: 24))
-        .shadow(color: .black.opacity(0.04), radius: 10, y: 4)
     }
 }
 
@@ -292,87 +232,82 @@ struct SaveSearchSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
+            VStack(spacing: NomadSpacing.xl) {
                 Image(systemName: "bell.badge.fill")
-                    .font(.system(size: 40))
-                    .foregroundStyle(NomadTheme.darkGreen)
-                    .padding(.top, 16)
+                    .font(.system(size: 42))
+                    .foregroundStyle(NomadColor.Accent.primary)
+                    .padding(.top, NomadSpacing.sm)
 
-                Text("Don't miss any new listings!")
-                    .font(.title3.bold())
-                    .foregroundStyle(NomadTheme.darkText)
+                VStack(spacing: NomadSpacing.xs) {
+                    Text("Don’t miss new listings")
+                        .font(NomadTypography.title2)
+                        .foregroundStyle(NomadColor.Text.primary)
+
+                    Text("Choose how you want to hear about matching properties.")
+                        .font(NomadTypography.body)
+                        .foregroundStyle(NomadColor.Text.secondary)
+                        .multilineTextAlignment(.center)
+                }
 
                 VStack(spacing: 0) {
-                    Toggle(isOn: $emailEnabled) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Email")
-                                .font(.body.weight(.medium))
-                            Text("Daily summary")
-                                .font(.caption)
-                                .foregroundStyle(NomadTheme.lightGrey)
-                        }
-                    }
-                    .tint(NomadTheme.darkGreen)
-                    .padding(16)
-
-                    Divider()
-
-                    Toggle(isOn: $notifEnabled) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Notifications")
-                                .font(.body.weight(.medium))
-                            Text("Real-time")
-                                .font(.caption)
-                                .foregroundStyle(NomadTheme.lightGrey)
-                        }
-                    }
-                    .tint(NomadTheme.darkGreen)
-                    .padding(16)
+                    ToggleRow(title: "Email", subtitle: "Daily summary", isOn: $emailEnabled)
+                    Divider().padding(.leading, NomadSpacing.md)
+                    ToggleRow(title: "Notifications", subtitle: "Real-time alerts", isOn: $notifEnabled)
                 }
-                .background(.white, in: .rect(cornerRadius: 16))
+                .nomadCardSurface(level: .level1, radius: NomadRadius.card)
 
                 if showSuccess {
-                    HStack(spacing: 8) {
+                    HStack(spacing: NomadSpacing.xs) {
                         Image(systemName: "checkmark.circle.fill")
-                        Text("The search was saved.")
+                        Text("Search saved")
                     }
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.white)
-                    .padding(14)
+                    .font(NomadTypography.bodyStrong)
+                    .foregroundStyle(NomadColor.Background.surface)
+                    .padding(.vertical, NomadSpacing.sm)
                     .frame(maxWidth: .infinity)
-                    .background(NomadTheme.darkGreen, in: .capsule)
+                    .background(NomadColor.Accent.primary, in: .capsule)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
-                Button {
+                NomadPrimaryCTA(title: "Confirm", icon: nil) {
                     appVM.savedSearchEmail = emailEnabled
                     appVM.savedSearchNotifications = notifEnabled
                     withAnimation { showSuccess = true }
+
                     Task {
-                        try? await Task.sleep(for: .seconds(1.5))
+                        try? await Task.sleep(for: .seconds(1.3))
                         dismiss()
                     }
-                } label: {
-                    Text("Confirm your choices")
-                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(PillButtonStyle())
 
-                Spacer()
+                Spacer(minLength: 0)
             }
-            .padding(24)
-            .background(NomadTheme.offWhite)
+            .padding(NomadSpacing.pageHorizontal)
+            .nomadScreenBackground()
+            .navigationTitle("Save Search")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .foregroundStyle(NomadTheme.darkText)
-                    }
-                }
+        }
+    }
+}
+
+private struct ToggleRow: View {
+    let title: String
+    let subtitle: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Toggle(isOn: $isOn) {
+            VStack(alignment: .leading, spacing: NomadSpacing.xxs) {
+                Text(title)
+                    .font(NomadTypography.bodyStrong)
+                    .foregroundStyle(NomadColor.Text.primary)
+                Text(subtitle)
+                    .font(NomadTypography.caption)
+                    .foregroundStyle(NomadColor.Text.secondary)
             }
         }
-        .presentationDetents([.medium])
-        .presentationDragIndicator(.visible)
+        .tint(NomadColor.Accent.primary)
+        .padding(.horizontal, NomadSpacing.md)
+        .padding(.vertical, NomadSpacing.sm)
     }
 }

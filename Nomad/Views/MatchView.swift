@@ -1,22 +1,14 @@
-//
-//  MatchView.swift
-//  Temporary
-//
-//  Created by Mikael on 24/2/26.
-//
-
-
 import SwiftUI
 
 struct MatchView: View {
     @Environment(AppViewModel.self) private var appVM
+
     @State private var currentIndex = 0
     @State private var currentImageIndex = 0
     @State private var offset: CGSize = .zero
     @State private var showExpanded = false
     @State private var showFilter = false
     @State private var filter = PropertyFilter()
-    @State private var selectedProperty: Property?
 
     private var availableProperties: [Property] {
         appVM.listingsService.properties.filter {
@@ -36,7 +28,7 @@ struct MatchView: View {
             if let property = currentProperty {
                 cardView(property)
                     .offset(x: offset.width)
-                    .rotationEffect(.degrees(Double(offset.width / 40)))
+                    .rotationEffect(.degrees(Double(offset.width / 42)))
                     .gesture(
                         DragGesture()
                             .onChanged { value in
@@ -50,9 +42,9 @@ struct MatchView: View {
 
                 overlayIndicators
 
-                VStack {
+                VStack(spacing: 0) {
                     topNav(property)
-                    Spacer()
+                    Spacer(minLength: 0)
                     profileOverlay(property)
                     actionBar(property)
                 }
@@ -75,21 +67,24 @@ struct MatchView: View {
             .overlay {
                 AsyncImage(url: URL(string: property.imageURLs[safe: currentImageIndex] ?? property.imageURLs.first ?? "")) { phase in
                     if let image = phase.image {
-                        image.resizable().aspectRatio(contentMode: .fill).allowsHitTesting(false)
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .allowsHitTesting(false)
                     } else {
                         ProgressView().tint(.white)
                     }
                 }
             }
-            .clipShape(.rect(cornerRadius: 20))
+            .clipShape(.rect(cornerRadius: NomadRadius.hero))
             .overlay(alignment: .bottom) {
-                LinearGradient(colors: [.clear, .black.opacity(0.7)], startPoint: .center, endPoint: .bottom)
-                    .clipShape(.rect(cornerRadius: 20))
+                LinearGradient(colors: [.clear, .black.opacity(0.78)], startPoint: .center, endPoint: .bottom)
+                    .clipShape(.rect(cornerRadius: NomadRadius.hero))
                     .allowsHitTesting(false)
             }
-            .padding(.horizontal, 8)
-            .padding(.top, 60)
-            .padding(.bottom, 100)
+            .padding(.horizontal, NomadSpacing.xs)
+            .padding(.top, 58)
+            .padding(.bottom, 112)
             .onTapGesture { location in
                 let midX = UIScreen.main.bounds.width / 2
                 withAnimation(.snappy) {
@@ -105,114 +100,114 @@ struct MatchView: View {
     @ViewBuilder
     private var overlayIndicators: some View {
         if offset.width > 50 {
-            VStack {
-                Text("LIKE")
-                    .font(.title.bold())
-                    .foregroundStyle(.green)
-                    .padding(8)
-                    .overlay { RoundedRectangle(cornerRadius: 8).stroke(.green, lineWidth: 3) }
-                    .rotationEffect(.degrees(-15))
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .padding(40)
-            .padding(.top, 60)
-            .transition(.opacity)
+            Text("LIKE")
+                .font(.system(size: 32, weight: .bold))
+                .foregroundStyle(NomadColor.Accent.primary)
+                .padding(.horizontal, NomadSpacing.sm)
+                .padding(.vertical, NomadSpacing.xs)
+                .overlay {
+                    RoundedRectangle(cornerRadius: NomadRadius.control)
+                        .stroke(NomadColor.Accent.primary, lineWidth: 3)
+                }
+                .rotationEffect(.degrees(-14))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(.horizontal, NomadSpacing.xxxl)
+                .padding(.top, 116)
+                .transition(.opacity)
         }
 
         if offset.width < -50 {
-            VStack {
-                Text("NOPE")
-                    .font(.title.bold())
-                    .foregroundStyle(.red)
-                    .padding(8)
-                    .overlay { RoundedRectangle(cornerRadius: 8).stroke(.red, lineWidth: 3) }
-                    .rotationEffect(.degrees(15))
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-            .padding(40)
-            .padding(.top, 60)
-            .transition(.opacity)
+            Text("NOPE")
+                .font(.system(size: 32, weight: .bold))
+                .foregroundStyle(.red)
+                .padding(.horizontal, NomadSpacing.sm)
+                .padding(.vertical, NomadSpacing.xs)
+                .overlay {
+                    RoundedRectangle(cornerRadius: NomadRadius.control)
+                        .stroke(.red, lineWidth: 3)
+                }
+                .rotationEffect(.degrees(14))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .padding(.horizontal, NomadSpacing.xxxl)
+                .padding(.top, 116)
+                .transition(.opacity)
         }
     }
 
     private func topNav(_ property: Property) -> some View {
         HStack {
-            Button { showFilter = true } label: {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.body.weight(.medium))
-                    .foregroundStyle(.white)
-                    .frame(width: 36, height: 36)
-                    .background(.white.opacity(0.2), in: .circle)
+            NomadIconCircleButton(icon: "slider.horizontal.3", emphasis: .overlay) {
+                showFilter = true
             }
+            .accessibilityLabel("Open filters")
 
-            Spacer()
+            Spacer(minLength: NomadSpacing.sm)
 
-            HStack(spacing: 4) {
+            HStack(spacing: NomadSpacing.xxs) {
                 ForEach(0..<property.imageURLs.count, id: \.self) { index in
                     Capsule()
-                        .fill(index == currentImageIndex ? .white : .white.opacity(0.4))
+                        .fill(index == currentImageIndex ? .white : .white.opacity(0.35))
                         .frame(width: index == currentImageIndex ? 20 : 8, height: 4)
                 }
             }
 
-            Spacer()
+            Spacer(minLength: NomadSpacing.sm)
 
             ShareLink(item: "\(property.address), \(property.city) - \(property.fullFormattedPrice)") {
                 Image(systemName: "square.and.arrow.up")
-                    .font(.body.weight(.medium))
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(.white)
-                    .frame(width: 36, height: 36)
-                    .background(.white.opacity(0.2), in: .circle)
+                    .frame(width: 44, height: 44)
+                    .background(.black.opacity(0.28), in: .circle)
             }
+            .accessibilityLabel("Share listing")
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
+        .padding(.horizontal, NomadSpacing.lg)
+        .padding(.top, NomadSpacing.sm)
     }
 
     private func profileOverlay(_ property: Property) -> some View {
-        HStack(alignment: .bottom) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(alignment: .bottom, spacing: NomadSpacing.md) {
+            VStack(alignment: .leading, spacing: NomadSpacing.xs) {
                 Text(property.fullFormattedPrice)
-                    .font(.title.bold())
+                    .font(NomadTypography.title1)
                     .foregroundStyle(.white)
 
-                HStack(spacing: 8) {
+                HStack(spacing: NomadSpacing.xs) {
                     if property.bedrooms > 0 {
                         Text("\(property.bedrooms) beds")
                     }
                     if property.bathrooms > 0 {
-                        Text("·")
+                        Text("•")
                         Text("\(property.bathrooms) baths")
                     }
                     if property.squareFeet > 0 {
-                        Text("·")
+                        Text("•")
                         Text("\(property.squareFeet) sqft")
                     }
                 }
-                .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.85))
+                .font(NomadTypography.body)
+                .foregroundStyle(.white.opacity(0.86))
 
                 Text(property.address + ", " + property.city)
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .font(NomadTypography.caption)
+                    .foregroundStyle(.white.opacity(0.74))
+                    .lineLimit(1)
             }
 
-            Spacer()
+            Spacer(minLength: 0)
 
-            Button { showExpanded = true } label: {
-                Image(systemName: "chevron.up")
-                    .font(.body.weight(.bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 36, height: 36)
-                    .background(.white.opacity(0.2), in: .circle)
+            NomadIconCircleButton(icon: "chevron.up", emphasis: .overlay) {
+                showExpanded = true
             }
+            .accessibilityLabel("Expand details")
         }
-        .padding(.horizontal, 24)
-        .padding(.bottom, 16)
+        .padding(.horizontal, NomadSpacing.xl)
+        .padding(.bottom, NomadSpacing.md)
     }
 
     private func actionBar(_ property: Property) -> some View {
-        HStack(spacing: 20) {
+        HStack(spacing: NomadSpacing.lg) {
             ActionButton(icon: "arrow.uturn.backward", size: .small) {
                 goBack()
             }
@@ -221,7 +216,7 @@ struct MatchView: View {
                 swipeLeft(property)
             }
 
-            ActionButton(icon: "heart.fill", size: .large, color: .green) {
+            ActionButton(icon: "heart.fill", size: .large, color: NomadColor.Accent.primary) {
                 swipeRight(property)
             }
 
@@ -229,21 +224,24 @@ struct MatchView: View {
                 skip()
             }
         }
-        .padding(.bottom, 24)
+        .padding(.bottom, NomadSpacing.xl)
     }
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: NomadSpacing.md) {
             Image(systemName: "house.fill")
-                .font(.system(size: 48))
+                .font(.system(size: 48, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.5))
+
             Text("No more properties")
-                .font(.title3.weight(.semibold))
+                .font(NomadTypography.title2)
                 .foregroundStyle(.white)
+
             Text("Check back later for new listings")
-                .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.6))
+                .font(NomadTypography.body)
+                .foregroundStyle(.white.opacity(0.7))
         }
+        .padding(.horizontal, NomadSpacing.pageHorizontal)
     }
 
     private func handleSwipe(_ value: DragGesture.Value, property: Property) {
@@ -260,19 +258,25 @@ struct MatchView: View {
     }
 
     private func swipeRight(_ property: Property) {
-        withAnimation(.snappy) { offset = CGSize(width: 500, height: 0) }
+        withAnimation(.snappy) {
+            offset = CGSize(width: 500, height: 0)
+        }
         appVM.toggleSaved(property)
         advanceCard()
     }
 
     private func swipeLeft(_ property: Property) {
-        withAnimation(.snappy) { offset = CGSize(width: -500, height: 0) }
+        withAnimation(.snappy) {
+            offset = CGSize(width: -500, height: 0)
+        }
         appVM.dislike(property)
         advanceCard()
     }
 
     private func skip() {
-        withAnimation(.snappy) { offset = CGSize(width: 500, height: 0) }
+        withAnimation(.snappy) {
+            offset = CGSize(width: 500, height: 0)
+        }
         advanceCard()
     }
 
@@ -299,17 +303,39 @@ struct ActionButton: View {
     var color: Color = .white
     let action: () -> Void
 
-    nonisolated enum ButtonSize { case small, large }
+    nonisolated enum ButtonSize {
+        case small
+        case large
+
+        var frame: CGFloat {
+            switch self {
+            case .small: return 46
+            case .large: return 62
+            }
+        }
+
+        var font: Font {
+            switch self {
+            case .small: return .system(size: 20, weight: .semibold)
+            case .large: return .system(size: 26, weight: .bold)
+            }
+        }
+    }
 
     var body: some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(size == .large ? .title2.weight(.bold) : .body.weight(.medium))
+                .font(size.font)
                 .foregroundStyle(color)
-                .frame(width: size == .large ? 60 : 44, height: size == .large ? 60 : 44)
-                .background(.white.opacity(0.15), in: .circle)
-                .overlay { Circle().stroke(color.opacity(0.3), lineWidth: 1.5) }
+                .frame(width: size.frame, height: size.frame)
+                .background(.white.opacity(0.16), in: .circle)
+                .overlay {
+                    Circle()
+                        .stroke(color.opacity(0.35), lineWidth: 1.5)
+                }
         }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(.isButton)
     }
 }
 

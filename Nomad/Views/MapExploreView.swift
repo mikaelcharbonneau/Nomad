@@ -1,17 +1,10 @@
-//
-//  MapExploreView.swift
-//  Temporary
-//
-//  Created by Mikael on 24/2/26.
-//
-
-
-import SwiftUI
 import MapKit
+import SwiftUI
 
 struct MapExploreView: View {
     let properties: [Property]
     let appVM: AppViewModel
+
     @Environment(\.dismiss) private var dismiss
     @State private var selectedProperty: Property?
     @State private var showDetail = false
@@ -26,17 +19,16 @@ struct MapExploreView: View {
         ZStack {
             Map(position: $cameraPosition, selection: $selectedProperty) {
                 ForEach(properties) { property in
-                    Annotation(property.formattedPrice, coordinate: CLLocationCoordinate2D(latitude: property.latitude, longitude: property.longitude)) {
+                    Annotation("", coordinate: CLLocationCoordinate2D(latitude: property.latitude, longitude: property.longitude)) {
                         Button {
                             selectedProperty = property
                         } label: {
                             Text(property.formattedPrice)
-                                .font(.caption2.weight(.bold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 5)
-                                .background(.black, in: .capsule)
-                                .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+                                .font(NomadTypography.meta)
+                                .foregroundStyle(NomadColor.Background.surface)
+                                .padding(.horizontal, NomadSpacing.sm)
+                                .padding(.vertical, NomadSpacing.xs)
+                                .background(NomadColor.Text.primary, in: .capsule)
                         }
                     }
                     .tag(property)
@@ -45,41 +37,36 @@ struct MapExploreView: View {
             .mapStyle(.standard(elevation: .realistic))
             .ignoresSafeArea()
 
-            VStack {
+            VStack(spacing: NomadSpacing.sm) {
                 HStack {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(NomadTheme.darkText)
-                            .frame(width: 40, height: 40)
-                            .background(.white, in: .circle)
-                            .shadow(color: .black.opacity(0.1), radius: 8, y: 4)
+                    NomadIconCircleButton(icon: "xmark") {
+                        dismiss()
                     }
-                    Spacer()
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
+                    .accessibilityLabel("Close map")
 
-                Spacer()
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, NomadSpacing.pageHorizontal)
+                .padding(.top, NomadSpacing.xs)
+
+                Spacer(minLength: 0)
 
                 if let property = selectedProperty {
-                    mapPreviewCard(property)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    Button {
+                        showDetail = true
+                    } label: {
+                        mapPreviewCard(property)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, NomadSpacing.pageHorizontal)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
-                Button { dismiss() } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "list.bullet")
-                        Text("View list")
-                    }
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 14)
-                    .background(.black, in: .capsule)
-                    .shadow(color: .black.opacity(0.2), radius: 20, y: 10)
+                NomadPrimaryCTA(title: "View list", icon: "list.bullet", style: .neutral) {
+                    dismiss()
                 }
-                .padding(.bottom, 16)
+                .padding(.horizontal, NomadSpacing.pageHorizontal)
+                .padding(.bottom, NomadSpacing.sm)
             }
         }
         .fullScreenCover(isPresented: $showDetail) {
@@ -90,47 +77,47 @@ struct MapExploreView: View {
     }
 
     private func mapPreviewCard(_ property: Property) -> some View {
-        Button {
-            showDetail = true
-        } label: {
-            HStack(spacing: 12) {
-                Color(.secondarySystemBackground)
-                    .frame(width: 80, height: 80)
-                    .overlay {
-                        AsyncImage(url: URL(string: property.imageURLs.first ?? "")) { phase in
-                            if let image = phase.image {
-                                image.resizable().aspectRatio(contentMode: .fill).allowsHitTesting(false)
-                            } else {
-                                Image(systemName: "photo").foregroundStyle(.tertiary)
-                            }
+        HStack(spacing: NomadSpacing.sm) {
+            Color(.secondarySystemBackground)
+                .frame(width: 88, height: 88)
+                .overlay {
+                    AsyncImage(url: URL(string: property.imageURLs.first ?? "")) { phase in
+                        if let image = phase.image {
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .allowsHitTesting(false)
+                        } else {
+                            Image(systemName: "photo")
+                                .foregroundStyle(.tertiary)
                         }
                     }
-                    .clipShape(.rect(cornerRadius: 16))
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(property.fullFormattedPrice)
-                        .font(.headline)
-                        .foregroundStyle(NomadTheme.darkText)
-                    Text(property.address)
-                        .font(.caption)
-                        .foregroundStyle(NomadTheme.lightGrey)
-                        .lineLimit(2)
-                    Text(property.city)
-                        .font(.caption)
-                        .foregroundStyle(NomadTheme.darkGreen)
                 }
+                .clipShape(.rect(cornerRadius: NomadRadius.control))
 
-                Spacer()
+            VStack(alignment: .leading, spacing: NomadSpacing.xxs) {
+                Text(property.fullFormattedPrice)
+                    .font(NomadTypography.title2)
+                    .foregroundStyle(NomadColor.Text.primary)
 
-                Image(systemName: "chevron.right")
-                    .foregroundStyle(NomadTheme.lightGrey)
+                Text(property.address)
+                    .font(NomadTypography.caption)
+                    .foregroundStyle(NomadColor.Text.secondary)
+                    .lineLimit(1)
+
+                Text(property.city)
+                    .font(NomadTypography.bodyStrong)
+                    .foregroundStyle(NomadColor.Accent.primary)
             }
-            .padding(12)
-            .background(.white, in: .rect(cornerRadius: NomadTheme.pillRadius))
-            .shadow(color: .black.opacity(0.1), radius: 20, y: 10)
+
+            Spacer(minLength: 0)
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(NomadColor.Text.tertiary)
+                .frame(width: 44, height: 44)
         }
-        .buttonStyle(.plain)
-        .padding(.horizontal, 16)
-        .padding(.bottom, 8)
+        .padding(NomadSpacing.md)
+        .nomadCardSurface(level: .level2, radius: NomadRadius.hero)
     }
 }

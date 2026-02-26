@@ -1,25 +1,15 @@
-//
-//  SavedView.swift
-//  Temporary
-//
-//  Created by Mikael on 24/2/26.
-//
-
-
 import SwiftUI
 
 struct SavedView: View {
     @Environment(AppViewModel.self) private var appVM
+
     @State private var showNewFolder = false
     @State private var newFolderName = ""
-    @State private var selectedFolder: SavedFolder?
     @State private var selectedProperty: Property?
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                NomadTheme.offWhite.ignoresSafeArea()
-
+            Group {
                 if appVM.savedPropertyIDs.isEmpty {
                     ContentUnavailableView(
                         "No Saved Properties",
@@ -28,32 +18,38 @@ struct SavedView: View {
                     )
                 } else {
                     ScrollView {
-                        VStack(alignment: .leading, spacing: 20) {
+                        VStack(alignment: .leading, spacing: NomadSpacing.sectionVertical) {
                             allSavedSection
                             foldersSection
                         }
-                        .padding(16)
+                        .padding(.horizontal, NomadSpacing.pageHorizontal)
+                        .padding(.top, NomadSpacing.md)
+                        .padding(.bottom, NomadSpacing.xxl)
                     }
                 }
             }
+            .nomadScreenBackground()
             .navigationTitle("Saved")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { showNewFolder = true } label: {
-                        Image(systemName: "folder.badge.plus")
-                            .foregroundStyle(NomadTheme.darkGreen)
+                    NomadIconCircleButton(icon: "folder.badge.plus", emphasis: .neutral) {
+                        showNewFolder = true
                     }
+                    .accessibilityLabel("Create folder")
                 }
             }
             .alert("New Folder", isPresented: $showNewFolder) {
                 TextField("Folder name", text: $newFolderName)
                 Button("Create") {
-                    if !newFolderName.isEmpty {
-                        appVM.addFolder(newFolderName)
+                    let trimmed = newFolderName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty {
+                        appVM.addFolder(trimmed)
                         newFolderName = ""
                     }
                 }
-                Button("Cancel", role: .cancel) { newFolderName = "" }
+                Button("Cancel", role: .cancel) {
+                    newFolderName = ""
+                }
             }
             .fullScreenCover(item: $selectedProperty) { property in
                 PropertyDetailView(property: property, appVM: appVM)
@@ -62,21 +58,18 @@ struct SavedView: View {
     }
 
     private var allSavedSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("All Saved")
-                    .font(.title3.bold())
-                    .foregroundStyle(NomadTheme.darkText)
-                Text("(\(appVM.savedProperties.count))")
-                    .font(.subheadline)
-                    .foregroundStyle(NomadTheme.lightGrey)
-            }
+        VStack(alignment: .leading, spacing: NomadSpacing.md) {
+            NomadSectionHeader(
+                title: "All Saved",
+                subtitle: "\(appVM.savedProperties.count) properties"
+            )
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
+                HStack(spacing: NomadSpacing.sm) {
                     ForEach(appVM.savedProperties) { property in
                         Button { selectedProperty = property } label: {
-                            SavedPropertyCard(property: property)
+                            NomadPropertyCard(property: property, variant: .compact)
+                                .frame(width: 220)
                         }
                         .buttonStyle(.plain)
                     }
@@ -87,65 +80,25 @@ struct SavedView: View {
     }
 
     private var foldersSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Folders")
-                .font(.title3.bold())
-                .foregroundStyle(NomadTheme.darkText)
+        VStack(alignment: .leading, spacing: NomadSpacing.md) {
+            NomadSectionHeader(title: "Folders", subtitle: "Organized collections")
 
-            ForEach(appVM.folders) { folder in
-                FolderRow(folder: folder, appVM: appVM, onPropertyTap: { property in
-                    selectedProperty = property
-                })
-            }
-            .onDelete { offsets in
-                appVM.deleteFolder(at: offsets)
-            }
-        }
-    }
-}
-
-struct SavedPropertyCard: View {
-    let property: Property
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Color(.secondarySystemBackground)
-                .frame(width: 160, height: 120)
-                .overlay {
-                    AsyncImage(url: URL(string: property.imageURLs.first ?? "")) { phase in
-                        if let image = phase.image {
-                            image.resizable().aspectRatio(contentMode: .fill).allowsHitTesting(false)
-                        } else {
-                            Image(systemName: "photo").foregroundStyle(.tertiary)
-                        }
-                    }
+            VStack(spacing: NomadSpacing.sm) {
+                ForEach(appVM.folders) { folder in
+                    FolderRow(folder: folder, appVM: appVM, onPropertyTap: { property in
+                        selectedProperty = property
+                    })
                 }
-                .clipShape(.rect(cornerRadius: 16))
-
-            Text(property.fullFormattedPrice)
-                .font(.subheadline.bold())
-                .foregroundStyle(NomadTheme.darkText)
-
-            Text(property.city)
-                .font(.caption)
-                .foregroundStyle(NomadTheme.lightGrey)
-
-            HStack(spacing: 6) {
-                if property.bedrooms > 0 { SpecItem(icon: "bed.double.fill", value: "\(property.bedrooms)") }
-                if property.bathrooms > 0 { SpecItem(icon: "shower.fill", value: "\(property.bathrooms)") }
             }
         }
-        .frame(width: 160)
-        .padding(10)
-        .background(.white, in: .rect(cornerRadius: 20))
-        .shadow(color: .black.opacity(0.04), radius: 10, y: 4)
     }
 }
 
-struct FolderRow: View {
+private struct FolderRow: View {
     let folder: SavedFolder
     let appVM: AppViewModel
     let onPropertyTap: (Property) -> Void
+
     @State private var isExpanded = false
 
     private var folderProperties: [Property] {
@@ -155,42 +108,59 @@ struct FolderRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Button {
-                withAnimation(.snappy) { isExpanded.toggle() }
+                withAnimation(.snappy) {
+                    isExpanded.toggle()
+                }
             } label: {
-                HStack {
+                HStack(spacing: NomadSpacing.sm) {
                     Image(systemName: "folder.fill")
-                        .foregroundStyle(NomadTheme.darkGreen)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(NomadColor.Accent.primary)
+
                     Text(folder.name)
-                        .font(.body.weight(.medium))
-                        .foregroundStyle(NomadTheme.darkText)
+                        .font(NomadTypography.bodyStrong)
+                        .foregroundStyle(NomadColor.Text.primary)
+
                     Text("(\(folderProperties.count))")
-                        .font(.caption)
-                        .foregroundStyle(NomadTheme.lightGrey)
-                    Spacer()
+                        .font(NomadTypography.caption)
+                        .foregroundStyle(NomadColor.Text.secondary)
+
+                    Spacer(minLength: 0)
+
                     Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(NomadTheme.lightGrey)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(NomadColor.Text.tertiary)
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                 }
-                .padding(16)
+                .padding(NomadSpacing.md)
             }
+            .buttonStyle(.plain)
 
-            if isExpanded && !folderProperties.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
-                        ForEach(folderProperties) { property in
-                            Button { onPropertyTap(property) } label: {
-                                MiniPropertyCard(property: property)
+            if isExpanded {
+                if folderProperties.isEmpty {
+                    Text("No properties in this folder yet.")
+                        .font(NomadTypography.caption)
+                        .foregroundStyle(NomadColor.Text.secondary)
+                        .padding(.horizontal, NomadSpacing.md)
+                        .padding(.bottom, NomadSpacing.md)
+                } else {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: NomadSpacing.sm) {
+                            ForEach(folderProperties) { property in
+                                Button { onPropertyTap(property) } label: {
+                                    NomadPropertyCard(property: property, variant: .mini)
+                                        .frame(width: 190)
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
                         }
+                        .padding(.horizontal, NomadSpacing.md)
+                        .padding(.bottom, NomadSpacing.md)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
+                    .contentMargins(.horizontal, 0)
                 }
-                .contentMargins(.horizontal, 0)
             }
         }
-        .background(.white, in: .rect(cornerRadius: 16))
+        .nomadCardSurface(level: .level1, radius: NomadRadius.card)
     }
 }

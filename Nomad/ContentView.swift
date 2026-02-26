@@ -50,7 +50,7 @@ struct ContentView: View {
                     .environment(appVM)
             }
         }
-        .tint(NomadTheme.darkGreen)
+        .tint(NomadColor.Accent.primary)
         .environment(\.symbolVariants, .none)
     }
 }
