@@ -1,17 +1,11 @@
-//
-//  PropertyDetailView.swift
-//  Temporary
-//
-//  Created by Mikael on 24/2/26.
-//
-
-
 import SwiftUI
 
 struct PropertyDetailView: View {
     let property: Property
     let appVM: AppViewModel
+
     @Environment(\.dismiss) private var dismiss
+
     @State private var currentImageIndex = 0
     @State private var showContact = false
     @State private var noteText = ""
@@ -23,22 +17,34 @@ struct PropertyDetailView: View {
     @State private var showMonthlyCosts = true
 
     var body: some View {
-        ZStack {
-            NomadTheme.offWhite.ignoresSafeArea()
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                imageGallery
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    imageGallery
-                    contentSection
+                VStack(alignment: .leading, spacing: NomadSpacing.xl) {
+                    headerCard
+                    detailsGrid
+                    expandableSection("Owner's comments") { ownerComments }
+                    noteSection
+                    expandableSection("Property features") { propertyFeatures }
+                    mortgageSection
+                    costsSection
                 }
-            }
-            .ignoresSafeArea(edges: .top)
-
-            VStack {
-                Spacer()
-                contactButton
+                .padding(.horizontal, NomadSpacing.pageHorizontal)
+                .padding(.top, NomadSpacing.xl)
+                .padding(.bottom, NomadSpacing.xl)
             }
         }
+        .ignoresSafeArea(edges: .top)
+        .safeAreaInset(edge: .bottom) {
+            NomadPrimaryCTA(title: "Contact Seller", icon: "message.fill", style: .neutral) {
+                showContact = true
+            }
+            .padding(.horizontal, NomadSpacing.pageHorizontal)
+            .padding(.vertical, NomadSpacing.sm)
+            .background(.ultraThinMaterial)
+        }
+        .nomadScreenBackground()
         .onAppear {
             purchasePrice = Double(property.price)
             noteText = appVM.propertyNotes[property.id] ?? ""
@@ -59,7 +65,10 @@ struct PropertyDetailView: View {
                         .overlay {
                             AsyncImage(url: URL(string: url)) { phase in
                                 if let image = phase.image {
-                                    image.resizable().aspectRatio(contentMode: .fill).allowsHitTesting(false)
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .allowsHitTesting(false)
                                 } else {
                                     ProgressView().tint(.white)
                                 }
@@ -70,94 +79,93 @@ struct PropertyDetailView: View {
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: 340)
+            .frame(height: 360)
 
-            VStack {
+            VStack(spacing: 0) {
                 HStack {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .frame(width: 36, height: 36)
-                            .background(.black.opacity(0.4), in: .circle)
+                    NomadIconCircleButton(icon: "xmark", emphasis: .overlay) {
+                        dismiss()
                     }
-                    Spacer()
+                    .accessibilityLabel("Close")
+
+                    Spacer(minLength: 0)
+
                     ShareLink(item: "Check out this property: \(property.address), \(property.city) - \(property.fullFormattedPrice)") {
                         Image(systemName: "square.and.arrow.up")
-                            .font(.body.weight(.semibold))
+                            .font(.system(size: 18, weight: .semibold))
                             .foregroundStyle(.white)
-                            .frame(width: 36, height: 36)
-                            .background(.black.opacity(0.4), in: .circle)
+                            .frame(width: 44, height: 44)
+                            .background(.black.opacity(0.28), in: .circle)
                     }
+                    .accessibilityLabel("Share")
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 56)
+                .padding(.horizontal, NomadSpacing.pageHorizontal)
+                .padding(.top, 58)
 
-                Spacer()
+                Spacer(minLength: 0)
 
                 HStack {
-                    Text("\(currentImageIndex + 1)/\(property.imageURLs.count)")
-                        .font(.caption.weight(.semibold))
+                    Text("\(currentImageIndex + 1)/\(max(property.imageURLs.count, 1))")
+                        .font(NomadTypography.caption)
                         .foregroundStyle(.white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(.black.opacity(0.5), in: .capsule)
-                    Spacer()
+                        .padding(.horizontal, NomadSpacing.sm)
+                        .padding(.vertical, NomadSpacing.xs)
+                        .background(.black.opacity(0.45), in: .capsule)
+
+                    Spacer(minLength: 0)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 12)
+                .padding(.horizontal, NomadSpacing.pageHorizontal)
+                .padding(.bottom, NomadSpacing.sm)
             }
         }
     }
 
-    private var contentSection: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            headerInfo
-            detailsGrid
-            expandableSection("Owner's comments") { ownerComments }
-            noteSection
-            expandableSection("Property features") { propertyFeatures }
-            mortgageSection
-            costsSection
-            Spacer(minLength: 100)
-        }
-        .padding(20)
-    }
-
-    private var headerInfo: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
+    private var headerCard: some View {
+        VStack(alignment: .leading, spacing: NomadSpacing.sm) {
+            HStack(alignment: .firstTextBaseline, spacing: NomadSpacing.xs) {
                 Text(property.fullFormattedPrice)
-                    .font(.title.bold())
-                    .foregroundStyle(NomadTheme.darkText)
+                    .font(NomadTypography.title1)
+                    .foregroundStyle(NomadColor.Text.primary)
+
                 if property.listingType == .rent {
-                    Text("/mo").font(.subheadline).foregroundStyle(NomadTheme.lightGrey)
+                    Text("/mo")
+                        .font(NomadTypography.body)
+                        .foregroundStyle(NomadColor.Text.secondary)
                 }
-                Spacer()
-                Button { appVM.toggleSaved(property) } label: {
+
+                Spacer(minLength: 0)
+
+                Button {
+                    appVM.toggleSaved(property)
+                } label: {
                     Image(systemName: appVM.isSaved(property) ? "heart.fill" : "heart")
-                        .font(.title2)
-                        .foregroundStyle(appVM.isSaved(property) ? .red : NomadTheme.lightGrey)
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(appVM.isSaved(property) ? .red : NomadColor.Text.tertiary)
+                        .frame(width: 44, height: 44)
                 }
+                .buttonStyle(.plain)
             }
 
             Text("\(property.propertyType.rawValue) for \(property.listingType.rawValue.lowercased())")
-                .font(.subheadline)
-                .foregroundStyle(NomadTheme.darkGreen)
+                .font(NomadTypography.bodyStrong)
+                .foregroundStyle(NomadColor.Accent.primary)
 
-            HStack(spacing: 4) {
+            HStack(spacing: NomadSpacing.xxs) {
                 Image(systemName: "mappin.and.ellipse")
-                    .font(.caption)
-                    .foregroundStyle(NomadTheme.darkGreen)
+                    .font(NomadTypography.meta)
+                    .foregroundStyle(NomadColor.Accent.primary)
+
                 Text("\(property.address), \(property.city), \(property.region)")
-                    .font(.subheadline)
-                    .foregroundStyle(NomadTheme.lightGrey)
+                    .font(NomadTypography.body)
+                    .foregroundStyle(NomadColor.Text.secondary)
             }
         }
+        .padding(NomadSpacing.md)
+        .nomadCardSurface(level: .level1, radius: NomadRadius.card)
     }
 
     private var detailsGrid: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: NomadSpacing.sm) {
             if property.bedrooms > 0 {
                 DetailCard(icon: "bed.double.fill", title: "Bedrooms", value: "\(property.bedrooms)")
             }
@@ -176,53 +184,65 @@ struct PropertyDetailView: View {
     @ViewBuilder
     private func expandableSection(_ title: String, @ViewBuilder content: () -> some View) -> some View {
         let isExpanded = expandedSections.contains(title)
+
         VStack(alignment: .leading, spacing: 0) {
             Button {
                 withAnimation(.snappy) {
-                    if isExpanded { expandedSections.remove(title) }
-                    else { expandedSections.insert(title) }
+                    if isExpanded {
+                        expandedSections.remove(title)
+                    } else {
+                        expandedSections.insert(title)
+                    }
                 }
             } label: {
                 HStack {
                     Text(title)
-                        .font(.headline)
-                        .foregroundStyle(NomadTheme.darkText)
-                    Spacer()
+                        .font(NomadTypography.section)
+                        .foregroundStyle(NomadColor.Text.primary)
+
+                    Spacer(minLength: 0)
+
                     Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(NomadTheme.lightGrey)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(NomadColor.Text.tertiary)
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                 }
-                .padding(16)
+                .padding(NomadSpacing.md)
             }
+            .buttonStyle(.plain)
 
             if isExpanded {
                 content()
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
+                    .padding(.horizontal, NomadSpacing.md)
+                    .padding(.bottom, NomadSpacing.md)
             }
         }
-        .background(.white, in: .rect(cornerRadius: 16))
+        .nomadCardSurface(level: .level1, radius: NomadRadius.card)
     }
 
     private var ownerComments: some View {
         Text(property.ownerComments)
-            .font(.body)
-            .foregroundStyle(NomadTheme.darkText)
-            .lineSpacing(4)
+            .font(NomadTypography.body)
+            .foregroundStyle(NomadColor.Text.primary)
+            .lineSpacing(3)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var noteSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: NomadSpacing.sm) {
             Text("Add note")
-                .font(.headline)
-                .foregroundStyle(NomadTheme.darkText)
+                .font(NomadTypography.section)
+                .foregroundStyle(NomadColor.Text.primary)
 
             TextEditor(text: $noteText)
-                .frame(minHeight: 80)
-                .padding(12)
-                .background(.white, in: .rect(cornerRadius: 16))
-                .overlay { RoundedRectangle(cornerRadius: 16).stroke(Color(.separator), lineWidth: 1) }
+                .font(NomadTypography.body)
+                .frame(minHeight: 120)
+                .padding(NomadSpacing.sm)
+                .background(NomadColor.Background.surface, in: .rect(cornerRadius: NomadRadius.card))
+                .overlay {
+                    RoundedRectangle(cornerRadius: NomadRadius.card)
+                        .stroke(NomadColor.Border.default, lineWidth: 1)
+                }
                 .onChange(of: noteText) { _, newValue in
                     appVM.propertyNotes[property.id] = newValue.isEmpty ? nil : newValue
                 }
@@ -230,139 +250,168 @@ struct PropertyDetailView: View {
     }
 
     private var propertyFeatures: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ForEach(Array(property.features.keys.sorted().prefix(5)), id: \.self) { key in
+        VStack(alignment: .leading, spacing: NomadSpacing.xs) {
+            let keys = Array(property.features.keys.sorted())
+
+            ForEach(Array(keys.prefix(6)), id: \.self) { key in
                 HStack {
                     Text(key)
-                        .font(.subheadline)
-                        .foregroundStyle(NomadTheme.lightGrey)
-                    Spacer()
+                        .font(NomadTypography.body)
+                        .foregroundStyle(NomadColor.Text.secondary)
+
+                    Spacer(minLength: 0)
+
                     Text(property.features[key] ?? "")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(NomadTheme.darkText)
+                        .font(NomadTypography.bodyStrong)
+                        .foregroundStyle(NomadColor.Text.primary)
+                        .multilineTextAlignment(.trailing)
                 }
-                if key != property.features.keys.sorted().prefix(5).last {
-                    Divider()
+
+                if key != keys.prefix(6).last {
+                    Divider().overlay(NomadColor.Border.default)
                 }
             }
 
-            Button { showAllFeatures = true } label: {
-                HStack {
+            Button {
+                showAllFeatures = true
+            } label: {
+                HStack(spacing: NomadSpacing.xxs) {
                     Text("See all property features")
-                        .font(.subheadline.weight(.medium))
                     Image(systemName: "chevron.right")
-                        .font(.caption2)
+                        .font(.system(size: 12, weight: .semibold))
                 }
-                .foregroundStyle(NomadTheme.darkGreen)
-                .padding(.top, 8)
+                .font(NomadTypography.bodyStrong)
+                .foregroundStyle(NomadColor.Accent.primary)
+                .padding(.top, NomadSpacing.xs)
             }
+            .buttonStyle(.plain)
         }
     }
 
     private var mortgageSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: NomadSpacing.sm) {
             Text("Mortgage Calculator")
-                .font(.headline)
-                .foregroundStyle(NomadTheme.darkText)
+                .font(NomadTypography.section)
+                .foregroundStyle(NomadColor.Text.primary)
 
-            VStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 6) {
+            VStack(spacing: NomadSpacing.md) {
+                VStack(alignment: .leading, spacing: NomadSpacing.xs) {
                     HStack {
                         Text("Purchase Price")
-                            .font(.subheadline)
-                            .foregroundStyle(NomadTheme.lightGrey)
-                        Spacer()
+                            .font(NomadTypography.body)
+                            .foregroundStyle(NomadColor.Text.secondary)
+
+                        Spacer(minLength: 0)
+
                         Text(Int(purchasePrice).formatted(.currency(code: "USD").precision(.fractionLength(0))))
-                            .font(.subheadline.weight(.medium))
+                            .font(NomadTypography.bodyStrong)
+                            .foregroundStyle(NomadColor.Text.primary)
                     }
-                    Slider(value: $purchasePrice, in: 50000...5000000, step: 5000)
-                        .tint(NomadTheme.darkGreen)
+
+                    Slider(value: $purchasePrice, in: 50_000...5_000_000, step: 5000)
+                        .tint(NomadColor.Accent.primary)
                 }
 
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: NomadSpacing.xs) {
                     HStack {
                         Text("Down Payment")
-                            .font(.subheadline)
-                            .foregroundStyle(NomadTheme.lightGrey)
-                        Spacer()
+                            .font(NomadTypography.body)
+                            .foregroundStyle(NomadColor.Text.secondary)
+
+                        Spacer(minLength: 0)
+
                         Text("\(Int(downPayment))%")
-                            .font(.subheadline.weight(.medium))
+                            .font(NomadTypography.bodyStrong)
+                            .foregroundStyle(NomadColor.Text.primary)
                     }
+
                     Slider(value: $downPayment, in: 5...50, step: 1)
-                        .tint(NomadTheme.darkGreen)
+                        .tint(NomadColor.Accent.primary)
                 }
 
                 HStack {
                     Text("Interest Rate")
-                        .font(.subheadline)
-                        .foregroundStyle(NomadTheme.lightGrey)
-                    Spacer()
+                        .font(NomadTypography.body)
+                        .foregroundStyle(NomadColor.Text.secondary)
+
+                    Spacer(minLength: 0)
+
                     TextField("5.5", text: $interestRate)
+                        .font(NomadTypography.bodyStrong)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
-                        .frame(width: 60)
-                        .font(.subheadline.weight(.medium))
+                        .frame(width: 72)
+
                     Text("%")
-                        .font(.subheadline)
-                        .foregroundStyle(NomadTheme.lightGrey)
+                        .font(NomadTypography.body)
+                        .foregroundStyle(NomadColor.Text.tertiary)
                 }
 
-                Divider()
+                Divider().overlay(NomadColor.Border.default)
 
-                let monthly = calculateMortgage()
                 HStack {
                     Text("Est. Monthly Payment")
-                        .font(.subheadline.weight(.semibold))
-                    Spacer()
-                    Text(monthly.formatted(.currency(code: "USD").precision(.fractionLength(0))))
-                        .font(.title3.bold())
-                        .foregroundStyle(NomadTheme.darkGreen)
+                        .font(NomadTypography.bodyStrong)
+                        .foregroundStyle(NomadColor.Text.primary)
+
+                    Spacer(minLength: 0)
+
+                    Text(monthlyPayment.formatted(.currency(code: "USD").precision(.fractionLength(0))))
+                        .font(NomadTypography.title2)
+                        .foregroundStyle(NomadColor.Accent.primary)
                 }
             }
-            .padding(16)
-            .background(.white, in: .rect(cornerRadius: 16))
+            .padding(NomadSpacing.md)
+            .nomadCardSurface(level: .level1, radius: NomadRadius.card)
         }
     }
 
-    private func calculateMortgage() -> Double {
+    private var monthlyPayment: Double {
         let principal = purchasePrice * (1 - downPayment / 100)
         let rate = (Double(interestRate) ?? 5.5) / 100 / 12
         let payments: Double = 25 * 12
-        guard rate > 0 else { return principal / payments }
+
+        guard rate > 0 else {
+            return principal / payments
+        }
+
         return principal * (rate * pow(1 + rate, payments)) / (pow(1 + rate, payments) - 1)
     }
 
     private var costsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: NomadSpacing.sm) {
             HStack {
                 Text("Costs and expenses")
-                    .font(.headline)
-                    .foregroundStyle(NomadTheme.darkText)
+                    .font(NomadTypography.section)
+                    .foregroundStyle(NomadColor.Text.primary)
 
-                Spacer()
+                Spacer(minLength: 0)
 
                 Picker("", selection: $showMonthlyCosts) {
                     Text("Monthly").tag(true)
                     Text("Yearly").tag(false)
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 180)
+                .frame(width: 190)
             }
 
             let multiplier = showMonthlyCosts ? 1 : 12
             let total = (property.monthlyTaxes + property.monthlyElectricity + property.monthlyCondoFees) * multiplier
 
-            VStack(spacing: 12) {
+            VStack(spacing: NomadSpacing.sm) {
                 HStack {
                     Text("Total")
-                        .font(.body.weight(.semibold))
-                    Spacer()
-                    Text("$\(total)")
-                        .font(.body.bold())
-                        .foregroundStyle(NomadTheme.darkGreen)
+                        .font(NomadTypography.bodyStrong)
+                        .foregroundStyle(NomadColor.Text.primary)
+
+                    Spacer(minLength: 0)
+
+                    Text(total.formatted(.currency(code: "USD").precision(.fractionLength(0))))
+                        .font(NomadTypography.title2)
+                        .foregroundStyle(NomadColor.Accent.primary)
                 }
 
-                Divider()
+                Divider().overlay(NomadColor.Border.default)
 
                 CostRow(title: "Property taxes", amount: property.monthlyTaxes * multiplier)
                 if property.monthlyElectricity > 0 {
@@ -372,26 +421,9 @@ struct PropertyDetailView: View {
                     CostRow(title: "Condo fees", amount: property.monthlyCondoFees * multiplier)
                 }
             }
-            .padding(16)
-            .background(.white, in: .rect(cornerRadius: 16))
+            .padding(NomadSpacing.md)
+            .nomadCardSurface(level: .level1, radius: NomadRadius.card)
         }
-    }
-
-    private var contactButton: some View {
-        Button { showContact = true } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "message.fill")
-                Text("Contact Seller")
-            }
-            .font(.headline)
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(.black, in: .capsule)
-            .shadow(color: .black.opacity(0.2), radius: 20, y: 10)
-        }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 16)
     }
 }
 
@@ -401,20 +433,22 @@ struct DetailCard: View {
     let value: String
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: NomadSpacing.xs) {
             Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(NomadTheme.darkGreen)
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(NomadColor.Accent.primary)
+
             Text(value)
-                .font(.headline)
-                .foregroundStyle(NomadTheme.darkText)
+                .font(NomadTypography.title2)
+                .foregroundStyle(NomadColor.Text.primary)
+
             Text(title)
-                .font(.caption)
-                .foregroundStyle(NomadTheme.lightGrey)
+                .font(NomadTypography.caption)
+                .foregroundStyle(NomadColor.Text.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(16)
-        .background(.white, in: .rect(cornerRadius: 16))
+        .padding(NomadSpacing.md)
+        .nomadCardSurface(level: .level1, radius: NomadRadius.card)
     }
 }
 
@@ -425,84 +459,115 @@ struct CostRow: View {
     var body: some View {
         HStack {
             Text(title)
-                .font(.subheadline)
-                .foregroundStyle(NomadTheme.lightGrey)
-            Spacer()
-            Text("$\(amount)")
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(NomadTheme.darkText)
+                .font(NomadTypography.body)
+                .foregroundStyle(NomadColor.Text.secondary)
+
+            Spacer(minLength: 0)
+
+            Text(amount.formatted(.currency(code: "USD").precision(.fractionLength(0))))
+                .font(NomadTypography.bodyStrong)
+                .foregroundStyle(NomadColor.Text.primary)
         }
     }
 }
 
 struct ContactSellerSheet: View {
     let property: Property
+
     @Environment(\.dismiss) private var dismiss
     @State private var messageText = ""
     @State private var messages: [(String, Bool)] = []
-    @State private var sent = false
 
     var body: some View {
         NavigationStack {
-            VStack {
-                ScrollView {
-                    VStack(spacing: 12) {
-                        ForEach(Array(messages.enumerated()), id: \.offset) { _, msg in
-                            HStack {
-                                if msg.1 { Spacer() }
-                                Text(msg.0)
-                                    .font(.body)
-                                    .padding(12)
-                                    .background(msg.1 ? NomadTheme.darkGreen : Color(.secondarySystemBackground), in: .rect(cornerRadius: 18))
-                                    .foregroundStyle(msg.1 ? .white : NomadTheme.darkText)
-                                if !msg.1 { Spacer() }
+            ScrollView {
+                LazyVStack(spacing: NomadSpacing.sm) {
+                    ForEach(Array(messages.enumerated()), id: \.offset) { _, message in
+                        HStack {
+                            if message.1 {
+                                Spacer(minLength: 60)
+                            }
+
+                            Text(message.0)
+                                .font(NomadTypography.body)
+                                .foregroundStyle(message.1 ? NomadColor.Background.surface : NomadColor.Text.primary)
+                                .padding(.horizontal, NomadSpacing.md)
+                                .padding(.vertical, NomadSpacing.sm)
+                                .background(
+                                    message.1 ? NomadColor.Accent.primary : NomadColor.Background.surfaceMuted,
+                                    in: .rect(cornerRadius: NomadRadius.card)
+                                )
+
+                            if !message.1 {
+                                Spacer(minLength: 60)
                             }
                         }
                     }
-                    .padding(16)
                 }
-
-                HStack(spacing: 10) {
+                .padding(.horizontal, NomadSpacing.pageHorizontal)
+                .padding(.top, NomadSpacing.md)
+                .padding(.bottom, NomadSpacing.md)
+            }
+            .safeAreaInset(edge: .bottom) {
+                HStack(spacing: NomadSpacing.sm) {
                     TextField("Type a message...", text: $messageText)
-                        .padding(12)
-                        .background(Color(.secondarySystemBackground), in: .capsule)
+                        .font(NomadTypography.body)
+                        .padding(.horizontal, NomadSpacing.md)
+                        .frame(minHeight: 48)
+                        .background(NomadColor.Background.surfaceMuted, in: .capsule)
 
                     Button {
-                        guard !messageText.isEmpty else { return }
-                        messages.append((messageText, true))
-                        let userMsg = messageText
-                        messageText = ""
-                        Task {
-                            try? await Task.sleep(for: .seconds(1))
-                            messages.append(("Thank you for your interest in \(property.address)! I'll get back to you within 24 hours.", false))
-                        }
+                        sendMessage()
                     } label: {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(NomadTheme.darkGreen)
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(NomadColor.Background.surface)
+                            .frame(width: 44, height: 44)
+                            .background(
+                                messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                    ? NomadColor.Text.tertiary
+                                    : NomadColor.Accent.primary,
+                                in: .circle
+                            )
                     }
+                    .buttonStyle(.plain)
+                    .disabled(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 8)
+                .padding(.horizontal, NomadSpacing.pageHorizontal)
+                .padding(.vertical, NomadSpacing.sm)
+                .background(.ultraThinMaterial)
             }
+            .nomadScreenBackground()
             .navigationTitle("Contact Seller")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(NomadTheme.lightGrey)
-                    }
+                    NomadIconCircleButton(icon: "xmark") { dismiss() }
+                        .accessibilityLabel("Close contact")
                 }
             }
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
     }
+
+    private func sendMessage() {
+        let text = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+
+        messages.append((text, true))
+        messageText = ""
+
+        Task {
+            try? await Task.sleep(for: .seconds(1.0))
+            messages.append(("Thank you for your interest in \(property.address)! I'll get back to you within 24 hours.", false))
+        }
+    }
 }
 
 struct AllFeaturesSheet: View {
     let property: Property
+
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -511,10 +576,14 @@ struct AllFeaturesSheet: View {
                 ForEach(property.features.keys.sorted(), id: \.self) { key in
                     HStack {
                         Text(key)
-                            .foregroundStyle(NomadTheme.lightGrey)
-                        Spacer()
+                            .font(NomadTypography.body)
+                            .foregroundStyle(NomadColor.Text.secondary)
+
+                        Spacer(minLength: 0)
+
                         Text(property.features[key] ?? "")
-                            .fontWeight(.medium)
+                            .font(NomadTypography.bodyStrong)
+                            .foregroundStyle(NomadColor.Text.primary)
                     }
                 }
             }
@@ -522,7 +591,9 @@ struct AllFeaturesSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
+                    Button("Done") {
+                        dismiss()
+                    }
                 }
             }
         }

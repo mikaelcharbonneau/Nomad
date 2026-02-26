@@ -18,12 +18,12 @@ class AppViewModel {
     var savedSearchNotifications: Bool = false
     var savedSearchEmail: Bool = false
 
-    let database = PropertyDatabase.shared
+    let listingsService = ListingsService.shared
     let authService = AuthService.shared
     let chatService = ChatService()
 
     var savedProperties: [Property] {
-        database.properties.filter { savedPropertyIDs.contains($0.id) }
+        listingsService.properties.filter { savedPropertyIDs.contains($0.id) }
     }
 
     func toggleSaved(_ property: Property) {

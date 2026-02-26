@@ -11,6 +11,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(AppViewModel.self) private var appVM
     @State private var showAuth = false
+    @State private var seedStatus: String?
 
     var body: some View {
         NavigationStack {
@@ -23,6 +24,7 @@ struct SettingsView: View {
                         accountSection
                         preferencesSection
                         aboutSection
+                        developerSection
                         if appVM.authService.isAuthenticated {
                             signOutButton
                         }
@@ -102,6 +104,35 @@ struct SettingsView: View {
         }
     }
 
+    private var developerSection: some View {
+        SettingsSection(title: "Developer") {
+            Button {
+                Task { await seedListings() }
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "tray.and.arrow.down.fill")
+                        .font(.body)
+                        .foregroundStyle(NomadTheme.darkGreen)
+                        .frame(width: 28)
+
+                    Text("Seed Sample Listings")
+                        .font(.body)
+                        .foregroundStyle(NomadTheme.darkText)
+
+                    Spacer()
+
+                    if let seedStatus {
+                        Text(seedStatus)
+                            .font(.caption)
+                            .foregroundStyle(NomadTheme.lightGrey)
+                    }
+                }
+                .padding(16)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
     private var signOutButton: some View {
         Button {
             appVM.authService.signOut()
@@ -110,6 +141,16 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(PillButtonStyle(filled: false, color: .red))
+    }
+
+    private func seedListings() async {
+        seedStatus = "Seeding..."
+        do {
+            try await appVM.listingsService.seedSampleListings()
+            seedStatus = "Done"
+        } catch {
+            seedStatus = "Failed"
+        }
     }
 }
 

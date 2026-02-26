@@ -8,6 +8,7 @@
 
 import Foundation
 import AuthenticationServices
+import FirebaseAuth
 
 @Observable
 @MainActor
@@ -18,28 +19,36 @@ class AuthService {
     var isAuthenticated: Bool { currentUser != nil && !(currentUser?.isGuest ?? true) }
     var isGuest: Bool { currentUser?.isGuest ?? false }
 
-    private init() {}
+    private var authListener: AuthStateDidChangeListenerHandle?
+    private var isGuestSession = false
+
+    private init() {
+        authListener = Auth.auth().addStateDidChangeListener { [weak self] _, user in
+            guard let self else { return }
+            if let user {
+                isGuestSession = false
+                currentUser = mapUser(user)
+            } else if isGuestSession {
+                currentUser = .guest
+            } else {
+                currentUser = nil
+            }
+        }
+    }
 
     func signIn(email: String, password: String) async throws {
-        try await Task.sleep(for: .seconds(1))
-        currentUser = User(
-            id: UUID().uuidString,
-            name: email.components(separatedBy: "@").first?.capitalized ?? "User",
-            email: email,
-            avatarURL: nil,
-            isGuest: false
-        )
+        isGuestSession = false
+        let result = try await Auth.auth().signIn(withEmail: email, password: password)
+        currentUser = mapUser(result.user)
     }
 
     func signUp(name: String, email: String, password: String) async throws {
-        try await Task.sleep(for: .seconds(1.2))
-        currentUser = User(
-            id: UUID().uuidString,
-            name: name,
-            email: email,
-            avatarURL: nil,
-            isGuest: false
-        )
+        isGuestSession = false
+        let result = try await Auth.auth().createUser(withEmail: email, password: password)
+        let changeRequest = result.user.createProfileChangeRequest()
+        changeRequest.displayName = name
+        try await changeRequest.commitChanges()
+        currentUser = mapUser(result.user, fallbackName: name)
     }
 
     func handleAppleSignIn(result: Result<ASAuthorization, any Error>) {
@@ -77,10 +86,24 @@ class AuthService {
     }
 
     func continueAsGuest() {
+        isGuestSession = true
         currentUser = .guest
     }
 
     func signOut() {
+        isGuestSession = false
+        try? Auth.auth().signOut()
         currentUser = nil
+    }
+
+    private func mapUser(_ user: FirebaseAuth.User, fallbackName: String? = nil) -> User {
+        let name = user.displayName ?? fallbackName ?? user.email?.components(separatedBy: "@").first?.capitalized ?? "User"
+        return User(
+            id: user.uid,
+            name: name,
+            email: user.email ?? "",
+            avatarURL: nil,
+            isGuest: false
+        )
     }
 }

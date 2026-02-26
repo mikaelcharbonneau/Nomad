@@ -15,7 +15,7 @@ class ChatService {
     var isTyping = false
 
     private let aiService = AIService()
-    private let database = PropertyDatabase.shared
+    private let listingsService = ListingsService.shared
     private var conversationHistory: [[String: Any]] = []
 
     func sendMessage(_ text: String) async {
@@ -121,10 +121,10 @@ class ChatService {
 
         When users ask about properties, ALWAYS use the showProperties tool to display matching listings. Select the most relevant property IDs based on the user's criteria. Keep your text responses concise — 1-3 sentences max — and let the property cards do the heavy lifting.
 
-        Here is the current property database you can reference:
+        Here is the current listing database you can reference:
         """
 
-        for property in database.properties {
+        for property in listingsService.properties {
             prompt += "\n- ID: \(property.id) | \(property.title) | \(property.formattedPrice) | \(property.city), \(property.region) | \(property.bedrooms)bd/\(property.bathrooms)ba | \(property.squareFeet)sqft | Type: \(property.propertyType.rawValue) | \(property.listingType.rawValue)"
             if property.isWaterfront { prompt += " | Waterfront" }
             if property.hasPool { prompt += " | Pool" }
@@ -140,7 +140,7 @@ class ChatService {
         - When showing properties, call showProperties with the relevant property IDs
         - Be warm, helpful, and concise
         - If the user asks something unrelated to real estate, politely steer the conversation back
-        - Use property IDs from the database above (p1, p2, etc.) when calling the tool
+        - Use property IDs from the database above when calling the tool
         - You can recommend properties proactively if they match the conversation context
         """
 
@@ -170,16 +170,16 @@ class ChatService {
         guard let data = argsJSON.data(using: .utf8),
               let args = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let ids = args["propertyIds"] as? [String] else {
-            return Array(database.properties.shuffled().prefix(3))
+            return Array(listingsService.properties.shuffled().prefix(3))
         }
 
-        let matched = ids.compactMap { id in database.properties.first { $0.id == id } }
-        return matched.isEmpty ? Array(database.properties.shuffled().prefix(3)) : matched
+        let matched = ids.compactMap { id in listingsService.properties.first { $0.id == id } }
+        return matched.isEmpty ? Array(listingsService.properties.shuffled().prefix(3)) : matched
     }
 
     private func generateFallbackResponse(for query: String) -> ChatMessage {
         let lower = query.lowercased()
-        let allProps = database.properties
+        let allProps = listingsService.properties
 
         if lower.contains("waterfront") || lower.contains("lake") || lower.contains("water") {
             let matching = allProps.filter { $0.isWaterfront || $0.description.lowercased().contains("lake") || $0.description.lowercased().contains("water") }

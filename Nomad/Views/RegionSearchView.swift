@@ -1,22 +1,19 @@
-//
-//  RegionSearchView.swift
-//  Temporary
-//
-//  Created by Mikael on 24/2/26.
-//
-
-
 import SwiftUI
 
 struct RegionSearchView: View {
     @Binding var selectedCities: Set<String>
     @Binding var searchText: String
+
     @Environment(\.dismiss) private var dismiss
+
     @State private var expandedRegions: Set<String> = []
     @State private var localSearch = ""
 
     private var filteredRegions: [Region] {
-        if localSearch.isEmpty { return sampleRegions }
+        if localSearch.isEmpty {
+            return sampleRegions
+        }
+
         return sampleRegions.filter { region in
             region.name.localizedCaseInsensitiveContains(localSearch) ||
             region.cities.contains { $0.localizedCaseInsensitiveContains(localSearch) }
@@ -36,8 +33,9 @@ struct RegionSearchView: View {
                     }
                 }
                 .listStyle(.plain)
+                .scrollContentBackground(.hidden)
             }
-            .background(NomadTheme.offWhite)
+            .nomadScreenBackground()
             .searchable(text: $localSearch, prompt: "Search by region, city, street...")
             .navigationTitle("Search Location")
             .navigationBarTitleDisplayMode(.inline)
@@ -47,7 +45,7 @@ struct RegionSearchView: View {
                         searchText = ""
                         dismiss()
                     }
-                    .fontWeight(.semibold)
+                    .font(NomadTypography.bodyStrong)
                 }
             }
         }
@@ -55,29 +53,32 @@ struct RegionSearchView: View {
 
     private var selectedChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: NomadSpacing.xs) {
                 ForEach(Array(selectedCities).sorted(), id: \.self) { city in
-                    HStack(spacing: 4) {
+                    HStack(spacing: NomadSpacing.xxs) {
                         Text(city)
-                            .font(.caption.weight(.medium))
+                            .font(NomadTypography.caption)
+
                         Button {
                             selectedCities.remove(city)
                         } label: {
                             Image(systemName: "xmark")
-                                .font(.caption2.weight(.bold))
+                                .font(.system(size: 11, weight: .bold))
+                                .frame(width: 20, height: 20)
                         }
+                        .buttonStyle(.plain)
                     }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(NomadTheme.darkGreen, in: .capsule)
+                    .foregroundStyle(NomadColor.Background.surface)
+                    .padding(.horizontal, NomadSpacing.sm)
+                    .padding(.vertical, NomadSpacing.xs)
+                    .background(NomadColor.Accent.primary, in: .capsule)
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            .padding(.horizontal, NomadSpacing.pageHorizontal)
+            .padding(.vertical, NomadSpacing.sm)
         }
         .contentMargins(.horizontal, 0)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(NomadColor.Background.surfaceMuted)
     }
 
     private func regionRow(_ region: Region) -> some View {
@@ -94,14 +95,18 @@ struct RegionSearchView: View {
                             selectedCities.insert(city)
                         }
                     } label: {
-                        HStack {
+                        HStack(spacing: NomadSpacing.xs) {
                             Image(systemName: selectedCities.contains(city) ? "checkmark.circle.fill" : "circle")
-                                .foregroundStyle(selectedCities.contains(city) ? NomadTheme.darkGreen : NomadTheme.lightGrey)
+                                .foregroundStyle(selectedCities.contains(city) ? NomadColor.Accent.primary : NomadColor.Text.tertiary)
+
                             Text(city)
-                                .foregroundStyle(NomadTheme.darkText)
-                            Spacer()
+                                .font(NomadTypography.body)
+                                .foregroundStyle(NomadColor.Text.primary)
+
+                            Spacer(minLength: 0)
                         }
                     }
+                    .buttonStyle(.plain)
                 }
             }
         } header: {
@@ -116,25 +121,27 @@ struct RegionSearchView: View {
             } label: {
                 HStack {
                     Text(region.name)
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(NomadTheme.darkText)
+                        .font(NomadTypography.bodyStrong)
+                        .foregroundStyle(NomadColor.Text.primary)
 
                     if selectedCount > 0 {
                         Text("\(selectedCount)")
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 20, height: 20)
-                            .background(NomadTheme.darkGreen, in: .circle)
+                            .font(NomadTypography.meta)
+                            .foregroundStyle(NomadColor.Background.surface)
+                            .frame(width: 22, height: 22)
+                            .background(NomadColor.Accent.primary, in: .circle)
                     }
 
-                    Spacer()
+                    Spacer(minLength: 0)
 
                     Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(NomadTheme.lightGrey)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(NomadColor.Text.tertiary)
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                 }
             }
+            .buttonStyle(.plain)
+            .textCase(nil)
         }
     }
 }

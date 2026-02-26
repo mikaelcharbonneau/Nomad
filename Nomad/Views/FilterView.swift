@@ -1,62 +1,49 @@
-//
-//  FilterView.swift
-//  Temporary
-//
-//  Created by Mikael on 24/2/26.
-//
-
-
 import SwiftUI
 
 struct FilterView: View {
     @Binding var filter: PropertyFilter
     let onApply: () -> Void
+
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    listingTypeToggle
+                VStack(alignment: .leading, spacing: NomadSpacing.xl) {
+                    listingTypeSection
                     propertyTypeSection
                     priceSection
-                    if !filter.isLotOnly { featuresSection }
+
+                    if !filter.isLotOnly {
+                        featuresSection
+                    }
+
                     otherSection
-                    if !filter.isLotOnly { yearSection }
-                    if !filter.isLotOnly { constructionTypeSection }
-                    if !filter.isLotOnly { livingAreaSection }
+
+                    if !filter.isLotOnly {
+                        yearSection
+                        constructionTypeSection
+                        livingAreaSection
+                    }
+
                     landAreaSection
                     moveInDateSection
                     listingDateSection
-
-                    Button {
-                        onApply()
-                    } label: {
-                        Text("Apply Filters")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(PillButtonStyle())
-                    .padding(.top, 8)
-
-                    Button {
-                        filter.reset()
-                    } label: {
-                        Text("Reset All")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(PillButtonStyle(filled: false))
                 }
-                .padding(20)
+                .padding(.horizontal, NomadSpacing.pageHorizontal)
+                .padding(.top, NomadSpacing.xl)
+                .padding(.bottom, NomadSpacing.xxl)
             }
-            .background(NomadTheme.offWhite)
+            .safeAreaInset(edge: .bottom) {
+                bottomActionBar
+            }
+            .nomadScreenBackground()
             .navigationTitle("Filters")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(NomadTheme.lightGrey)
-                    }
+                    NomadIconCircleButton(icon: "xmark") { dismiss() }
+                        .accessibilityLabel("Close filters")
                 }
             }
         }
@@ -64,9 +51,9 @@ struct FilterView: View {
         .presentationContentInteraction(.scrolls)
     }
 
-    private var listingTypeToggle: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Picker("", selection: $filter.listingType) {
+    private var listingTypeSection: some View {
+        FilterCard {
+            Picker("Listing Type", selection: $filter.listingType) {
                 ForEach(ListingType.allCases, id: \.self) { type in
                     Text(type.rawValue).tag(type)
                 }
@@ -76,38 +63,36 @@ struct FilterView: View {
     }
 
     private var propertyTypeSection: some View {
-        FilterSection(title: "Property Type") {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], spacing: 8) {
+        FilterCard(title: "Property Type") {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: NomadSpacing.xs)], spacing: NomadSpacing.xs) {
                 ForEach(PropertyType.allCases, id: \.self) { type in
-                    FilterChip(
-                        title: type.rawValue,
-                        isSelected: filter.propertyTypes.contains(type),
-                        action: {
-                            if filter.propertyTypes.contains(type) {
-                                filter.propertyTypes.remove(type)
-                            } else {
-                                filter.propertyTypes.insert(type)
-                            }
+                    NomadChip(text: type.rawValue, isSelected: filter.propertyTypes.contains(type)) {
+                        if filter.propertyTypes.contains(type) {
+                            filter.propertyTypes.remove(type)
+                        } else {
+                            filter.propertyTypes.insert(type)
                         }
-                    )
+                    }
                 }
             }
         }
     }
 
     private var priceSection: some View {
-        FilterSection(title: "Price") {
-            HStack(spacing: 12) {
+        FilterCard(title: "Price") {
+            HStack(spacing: NomadSpacing.sm) {
                 NumberField(placeholder: "Min", value: $filter.minPrice)
-                Text("–").foregroundStyle(NomadTheme.lightGrey)
+                Text("–")
+                    .font(NomadTypography.bodyStrong)
+                    .foregroundStyle(NomadColor.Text.tertiary)
                 NumberField(placeholder: "Max", value: $filter.maxPrice)
             }
         }
     }
 
     private var featuresSection: some View {
-        FilterSection(title: "Features") {
-            VStack(alignment: .leading, spacing: 16) {
+        FilterCard(title: "Features") {
+            VStack(alignment: .leading, spacing: NomadSpacing.md) {
                 FeatureRow(title: "Bedrooms", options: ["1", "1+", "2", "2+", "3", "3+", "4", "4+", "5", "5+"], selection: $filter.bedrooms)
                 FeatureRow(title: "Bathrooms", options: ["1+", "2+", "3+", "4+", "5+"], selection: $filter.bathrooms)
                 FeatureRow(title: "Parking", options: ["1+", "2+", "3+", "4+", "5+"], selection: $filter.parkingSpaces)
@@ -117,81 +102,85 @@ struct FilterView: View {
     }
 
     private var otherSection: some View {
-        FilterSection(title: "Other") {
+        FilterCard(title: "Other") {
             VStack(spacing: 0) {
                 if !filter.isLotOnly {
                     FilterToggle(title: "Pool", isOn: $filter.hasPool)
                     FilterToggle(title: "Elevator", isOn: $filter.hasElevator)
                     FilterToggle(title: "Adapted for reduced mobility", isOn: $filter.adaptedMobility)
                 }
+
                 FilterToggle(title: "Waterfront", isOn: $filter.isWaterfront)
                 FilterToggle(title: "Access to waterfront", isOn: $filter.accessWaterfront)
                 FilterToggle(title: "Navigable body of water", isOn: $filter.navigableWater)
                 FilterToggle(title: "Resort", isOn: $filter.isResort)
+
                 if !filter.isLotOnly {
                     FilterToggle(title: "Pets allowed", isOn: $filter.isPetFriendly)
                     FilterToggle(title: "Smoking allowed", isOn: $filter.smokingAllowed)
                     FilterToggle(title: "Open houses", isOn: $filter.openHouses)
                 }
-                FilterToggle(title: "Repossession", isOn: $filter.repossession)
+
+                FilterToggle(title: "Repossession", isOn: $filter.repossession, showDivider: false)
             }
-            .background(.white, in: .rect(cornerRadius: 16))
         }
     }
 
     private var yearSection: some View {
-        FilterSection(title: "Year of Construction") {
-            HStack(spacing: 12) {
+        FilterCard(title: "Year of Construction") {
+            HStack(spacing: NomadSpacing.sm) {
                 NumberField(placeholder: "Min year", value: $filter.minYear)
-                Text("–").foregroundStyle(NomadTheme.lightGrey)
+                Text("–")
+                    .font(NomadTypography.bodyStrong)
+                    .foregroundStyle(NomadColor.Text.tertiary)
                 NumberField(placeholder: "Max year", value: $filter.maxYear)
             }
         }
     }
 
     private var constructionTypeSection: some View {
-        FilterSection(title: "Type of Construction") {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 8)], spacing: 8) {
+        FilterCard(title: "Type of Construction") {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 128), spacing: NomadSpacing.xs)], spacing: NomadSpacing.xs) {
                 ForEach(ConstructionType.allCases, id: \.self) { type in
-                    FilterChip(
-                        title: type.rawValue,
-                        isSelected: filter.constructionTypes.contains(type),
-                        action: {
-                            if filter.constructionTypes.contains(type) {
-                                filter.constructionTypes.remove(type)
-                            } else {
-                                filter.constructionTypes.insert(type)
-                            }
+                    NomadChip(text: type.rawValue, isSelected: filter.constructionTypes.contains(type)) {
+                        if filter.constructionTypes.contains(type) {
+                            filter.constructionTypes.remove(type)
+                        } else {
+                            filter.constructionTypes.insert(type)
                         }
-                    )
+                    }
                 }
             }
         }
     }
 
     private var livingAreaSection: some View {
-        FilterSection(title: "Living Area (sq ft)") {
-            HStack(spacing: 12) {
+        FilterCard(title: "Living Area (sq ft)") {
+            HStack(spacing: NomadSpacing.sm) {
                 NumberField(placeholder: "Min", value: $filter.minLivingArea)
-                Text("–").foregroundStyle(NomadTheme.lightGrey)
+                Text("–")
+                    .font(NomadTypography.bodyStrong)
+                    .foregroundStyle(NomadColor.Text.tertiary)
                 NumberField(placeholder: "Max", value: $filter.maxLivingArea)
             }
         }
     }
 
     private var landAreaSection: some View {
-        FilterSection(title: "Land Area (sq ft)") {
-            HStack(spacing: 12) {
+        FilterCard(title: "Land Area (sq ft)") {
+            HStack(spacing: NomadSpacing.sm) {
                 NumberField(placeholder: "Min", value: $filter.minLandArea)
-                Text("–").foregroundStyle(NomadTheme.lightGrey)
+                Text("–")
+                    .font(NomadTypography.bodyStrong)
+                    .foregroundStyle(NomadColor.Text.tertiary)
                 NumberField(placeholder: "Max", value: $filter.maxLandArea)
             }
         }
     }
 
     private var moveInDateSection: some View {
-        FilterSection(title: "Move-in Date") {
-            HStack(spacing: 12) {
+        FilterCard(title: "Move-in Date") {
+            HStack(spacing: NomadSpacing.sm) {
                 DatePickerField(title: "Soonest", date: $filter.moveInDateStart)
                 DatePickerField(title: "Latest", date: $filter.moveInDateEnd)
             }
@@ -199,84 +188,101 @@ struct FilterView: View {
     }
 
     private var listingDateSection: some View {
-        FilterSection(title: "Listing Date") {
-            HStack(spacing: 12) {
+        FilterCard(title: "Listing Date") {
+            HStack(spacing: NomadSpacing.sm) {
                 DatePickerField(title: "Most recent", date: $filter.listingDateStart)
                 DatePickerField(title: "Oldest", date: $filter.listingDateEnd)
             }
         }
     }
+
+    private var bottomActionBar: some View {
+        VStack(spacing: NomadSpacing.sm) {
+            NomadPrimaryCTA(title: "Apply Filters", icon: nil) {
+                onApply()
+            }
+
+            Button {
+                filter.reset()
+            } label: {
+                Text("Reset All")
+                    .font(NomadTypography.bodyStrong)
+                    .foregroundStyle(NomadColor.Accent.primary)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: 48)
+                    .background(NomadColor.Background.surface, in: .capsule)
+                    .overlay {
+                        Capsule().stroke(NomadColor.Border.default, lineWidth: 1)
+                    }
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, NomadSpacing.pageHorizontal)
+        .padding(.vertical, NomadSpacing.sm)
+        .background(.ultraThinMaterial)
+    }
 }
 
-struct FilterSection<Content: View>: View {
-    let title: String
+private struct FilterCard<Content: View>: View {
+    var title: String? = nil
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.headline)
-                .foregroundStyle(NomadTheme.darkText)
+        VStack(alignment: .leading, spacing: NomadSpacing.sm) {
+            if let title {
+                Text(title)
+                    .font(NomadTypography.section)
+                    .foregroundStyle(NomadColor.Text.primary)
+            }
+
             content
         }
+        .padding(NomadSpacing.md)
+        .nomadCardSurface(level: .level1, radius: NomadRadius.card)
     }
 }
 
-struct FilterChip: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.caption.weight(.medium))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .frame(maxWidth: .infinity)
-                .background(isSelected ? NomadTheme.darkGreen : .white, in: .capsule)
-                .foregroundStyle(isSelected ? .white : NomadTheme.darkText)
-                .overlay { Capsule().stroke(isSelected ? .clear : Color(.separator), lineWidth: 1) }
-        }
-    }
-}
-
-struct FilterToggle: View {
+private struct FilterToggle: View {
     let title: String
     @Binding var isOn: Bool
+    var showDivider = true
 
     var body: some View {
-        Toggle(title, isOn: $isOn)
-            .tint(NomadTheme.darkGreen)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+        Toggle(isOn: $isOn) {
+            Text(title)
+                .font(NomadTypography.body)
+                .foregroundStyle(NomadColor.Text.primary)
+        }
+        .tint(NomadColor.Accent.primary)
+        .padding(.horizontal, NomadSpacing.sm)
+        .padding(.vertical, NomadSpacing.sm)
+        .background(
+            VStack {
+                Spacer()
+                if showDivider {
+                    Divider().overlay(NomadColor.Border.default)
+                }
+            }
+        )
     }
 }
 
-struct FeatureRow: View {
+private struct FeatureRow: View {
     let title: String
     let options: [String]
     @Binding var selection: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: NomadSpacing.xs) {
             Text(title)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(NomadTheme.darkText)
+                .font(NomadTypography.bodyStrong)
+                .foregroundStyle(NomadColor.Text.primary)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
+                HStack(spacing: NomadSpacing.xs) {
                     ForEach(options, id: \.self) { option in
-                        Button {
+                        NomadChip(text: option, isSelected: selection == option, isCompact: true) {
                             selection = selection == option ? nil : option
-                        } label: {
-                            Text(option)
-                                .font(.caption.weight(.medium))
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 8)
-                                .background(selection == option ? NomadTheme.darkGreen : .white, in: .capsule)
-                                .foregroundStyle(selection == option ? .white : NomadTheme.darkText)
-                                .overlay { Capsule().stroke(selection == option ? .clear : Color(.separator), lineWidth: 1) }
                         }
                     }
                 }
@@ -286,49 +292,62 @@ struct FeatureRow: View {
     }
 }
 
-struct NumberField: View {
+private struct NumberField: View {
     let placeholder: String
     @Binding var value: Int?
     @State private var text = ""
 
     var body: some View {
         TextField(placeholder, text: $text)
+            .font(NomadTypography.body)
             .keyboardType(.numberPad)
-            .padding(12)
-            .background(.white, in: .capsule)
-            .overlay { Capsule().stroke(Color(.separator), lineWidth: 1) }
+            .padding(.horizontal, NomadSpacing.md)
+            .frame(height: 48)
+            .background(NomadColor.Background.surfaceMuted, in: .rect(cornerRadius: NomadRadius.control))
+            .overlay {
+                RoundedRectangle(cornerRadius: NomadRadius.control)
+                    .stroke(NomadColor.Border.default, lineWidth: 1)
+            }
             .onChange(of: text) { _, newValue in
                 value = Int(newValue)
             }
             .onAppear {
-                if let value { text = "\(value)" }
+                if let value {
+                    text = "\(value)"
+                }
             }
     }
 }
 
-struct DatePickerField: View {
+private struct DatePickerField: View {
     let title: String
     @Binding var date: Date?
+
     @State private var showPicker = false
     @State private var tempDate = Date()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: NomadSpacing.xxs) {
             Text(title)
-                .font(.caption)
-                .foregroundStyle(NomadTheme.lightGrey)
+                .font(NomadTypography.meta)
+                .foregroundStyle(NomadColor.Text.tertiary)
 
             Button {
                 showPicker.toggle()
             } label: {
                 Text(date?.formatted(date: .abbreviated, time: .omitted) ?? "Any")
-                    .font(.subheadline)
-                    .foregroundStyle(date != nil ? NomadTheme.darkText : NomadTheme.lightGrey)
-                    .padding(12)
+                    .font(NomadTypography.body)
+                    .foregroundStyle(date != nil ? NomadColor.Text.primary : NomadColor.Text.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.white, in: .rect(cornerRadius: 12))
-                    .overlay { RoundedRectangle(cornerRadius: 12).stroke(Color(.separator), lineWidth: 1) }
+                    .padding(.horizontal, NomadSpacing.md)
+                    .frame(height: 48)
+                    .background(NomadColor.Background.surfaceMuted, in: .rect(cornerRadius: NomadRadius.control))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: NomadRadius.control)
+                            .stroke(NomadColor.Border.default, lineWidth: 1)
+                    }
             }
+            .buttonStyle(.plain)
         }
         .sheet(isPresented: $showPicker) {
             NavigationStack {
