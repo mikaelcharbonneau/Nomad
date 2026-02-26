@@ -19,7 +19,7 @@ struct MatchView: View {
     @State private var selectedProperty: Property?
 
     private var availableProperties: [Property] {
-        appVM.database.properties.filter {
+        appVM.listingsService.properties.filter {
             !appVM.dislikedPropertyIDs.contains($0.id) && $0.listingType == .sale
         }
     }

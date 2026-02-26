@@ -30,26 +30,27 @@ struct ContentView: View {
                     .environment(appVM)
             }
 
-            Tab("Match", systemImage: "heart.circle.fill", value: 1) {
+            Tab("Match", systemImage: "heart", value: 1) {
                 MatchView()
                     .environment(appVM)
             }
 
-            Tab("Agent", systemImage: "bubble.left.and.text.bubble.right.fill", value: 2) {
+            Tab("Agent", systemImage: "bubble", value: 2) {
                 AgentView()
                     .environment(appVM)
             }
 
-            Tab("Saved", systemImage: "bookmark.fill", value: 3) {
+            Tab("Saved", systemImage: "bookmark", value: 3) {
                 SavedView()
                     .environment(appVM)
             }
 
-            Tab("Settings", systemImage: "gearshape.fill", value: 4) {
+            Tab("Settings", systemImage: "gearshape", value: 4) {
                 SettingsView()
                     .environment(appVM)
             }
         }
         .tint(NomadTheme.darkGreen)
+        .environment(\.symbolVariants, .none)
     }
 }

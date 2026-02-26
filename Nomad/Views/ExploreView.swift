@@ -16,11 +16,12 @@ struct ExploreView: View {
     @State private var showSearch = false
     @State private var showMap = false
     @State private var showSaveSearch = false
+    @State private var showCreateListing = false
     @State private var selectedProperty: Property?
     @State private var sortOption: SortOption = .newest
 
     private var filteredProperties: [Property] {
-        var results = appVM.database.filteredProperties(with: filter)
+        var results = appVM.listingsService.filteredProperties(with: filter)
         if !searchText.isEmpty {
             results = results.filter {
                 $0.city.localizedCaseInsensitiveContains(searchText) ||
@@ -38,7 +39,7 @@ struct ExploreView: View {
     }
 
     private var featuredProperties: [Property] {
-        appVM.database.properties.filter { $0.isFeatured }
+        appVM.listingsService.properties.filter { $0.isFeatured }
     }
 
     var body: some View {
@@ -78,6 +79,10 @@ struct ExploreView: View {
             .sheet(isPresented: $showSaveSearch) {
                 SaveSearchSheet(appVM: appVM)
             }
+            .fullScreenCover(isPresented: $showCreateListing) {
+                CreateListingView()
+                    .environment(appVM)
+            }
             .fullScreenCover(isPresented: $showMap) {
                 MapExploreView(properties: filteredProperties, appVM: appVM)
             }
@@ -88,12 +93,24 @@ struct ExploreView: View {
     }
 
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(NomadTheme.greeting)
-                .font(.title.bold())
-                .foregroundStyle(NomadTheme.darkText)
-                .padding(.top, 8)
+        HStack {
+            Image("NomadLogo")
+                .resizable()
+                .scaledToFit()
+                .frame(height: 45)
+
+            Spacer()
+
+            Button { showCreateListing = true } label: {
+                Image(systemName: "plus")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 36, height: 36)
+                    .background(NomadTheme.darkGreen, in: .circle)
+                    .shadow(color: .black.opacity(0.1), radius: 8, y: 4)
+            }
         }
+        .padding(.top, 8)
     }
 
     private var searchBarSection: some View {

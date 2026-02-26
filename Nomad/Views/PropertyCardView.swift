@@ -132,7 +132,7 @@ struct MiniPropertyCard: View {
                 }
                 .clipShape(.rect(cornerRadius: 16))
 
-            Text(property.formattedPrice)
+            Text(property.fullFormattedPrice)
                 .font(.subheadline.bold())
                 .foregroundStyle(NomadTheme.darkText)
 

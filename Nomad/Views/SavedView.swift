@@ -149,7 +149,7 @@ struct FolderRow: View {
     @State private var isExpanded = false
 
     private var folderProperties: [Property] {
-        appVM.database.properties.filter { folder.propertyIDs.contains($0.id) }
+        appVM.listingsService.properties.filter { folder.propertyIDs.contains($0.id) }
     }
 
     var body: some View {
